@@ -1,0 +1,204 @@
+/* Login Page Modernized for Prata Joias */
+.container {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #fffbe7 60%, #f5e6c2 100%);
+}
+
+.loginBox {
+  width: 900px;
+  max-width: 98vw;
+  height: 540px;
+  display: flex;
+  box-shadow: 0 8px 40px rgba(191,164,107,0.13);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.login, .register {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login {
+  background: #fafafa;
+  border-radius: 16px 0 0 16px;
+  text-align: center;
+}
+
+.innerContainer {
+  width: 85%;
+  margin: 0 auto;
+}
+
+.login h1 {
+  margin-bottom: 32px;
+  font-size: 2.2em;
+  font-family: 'Playfair Display', serif;
+  color: #bfa46b;
+}
+.input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 22px;
+  border: none;
+  border-radius: 8px;
+  background-color: #eeeeef;
+  font-size: 1.06rem;
+  font-family: 'Inter', Arial, sans-serif;
+}
+.optionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.remember {
+  display: flex;
+  align-items: center;
+  font-size: 0.97rem;
+  color: #333;
+  gap: 5px;
+}
+.forgot {
+  color: #bfa46b;
+  text-decoration: none;
+  font-size: 0.97rem;
+  transition: color 0.2s;
+}
+.forgot:hover {
+  color: #a08b54;
+  font-weight: 500;
+}
+.loginButton {
+  width: 100%;
+  margin: 22px 0 10px 0;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: #bfa46b;
+  color: #fff;
+  font-size: 1.18rem;
+  font-family: 'Inter', Arial, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, font-size 0.2s, width 0.2s;
+}
+.loginButton:hover {
+  background: #a08b54;
+  width: 97%;
+  font-size: 1.22rem;
+}
+.hrRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0 10px 0;
+  gap: 10px;
+}
+.hrRow hr {
+  width: 30%;
+  border: none;
+  border-top: 1.5px solid #e5e5e5;
+  margin: 0;
+}
+.hrRow span {
+  color: #bfa46b;
+  font-size: 1rem;
+  font-family: 'Inter', Arial, sans-serif;
+}
+.socialList {
+  list-style: none;
+  margin: 20px 0 32px 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+.socialList li {
+  display: inline-block;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.socialList li:hover {
+  opacity: 0.6;
+}
+.copyright {
+  display: inline-block;
+  color: #bfa46b;
+  font-size: 1rem;
+  margin-top: 8px;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+/* Register Side */
+.register {
+  background-image: linear-gradient(135deg, #222 5%, #bfa46b 95%);
+  color: #fff;
+  border-radius: 0 16px 16px 0;
+  text-align: center;
+  position: relative;
+}
+.register h2 {
+  margin: 28px 0 12px 0;
+  font-size: 2.2em;
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 2px;
+  color: #fff;
+}
+.register p {
+  font-size: 1.06rem;
+  margin-bottom: 32px;
+  font-family: 'Inter', Arial, sans-serif;
+}
+.registerButton {
+  background-color: transparent;
+  border: 1.5px solid #fff;
+  border-radius: 20px;
+  padding: 10px 24px;
+  color: #fff;
+  font-size: 1.08rem;
+  font-family: 'Inter', Arial, sans-serif;
+  text-transform: uppercase;
+  transition: 0.2s all ease-in-out;
+  cursor: pointer;
+}
+.registerButton:hover {
+  color: #bfa46b;
+  background-color: #fff;
+}
+
+@media (max-width: 900px) {
+  .loginBox {
+    flex-direction: column;
+    height: auto;
+    min-height: 600px;
+  }
+  .login, .register {
+    width: 100%;
+    border-radius: 0 !important;
+    min-height: 300px;
+  }
+  .register {
+    border-radius: 0 0 16px 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .loginBox {
+    width: 99vw;
+    min-width: unset;
+    border-radius: 0;
+  }
+  .innerContainer {
+    width: 98%;
+    padding: 0;
+  }
+}

@@ -1,0 +1,56 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s, max-width 0.2s;
+  max-width: 260px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.card:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+.expanded {
+  max-width: 420px;
+  z-index: 10;
+  box-shadow: 0 8px 32px rgba(191,164,107,0.25);
+  border: 2px solid #bfa46b;
+  background: #fffbe7;
+}
+.image {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  transition: width 0.2s, height 0.2s;
+}
+.imageExpanded {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 1.5rem;
+}
+.price {
+  color: #bfa46b;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+}
+.details {
+  margin-top: 1.2rem;
+  text-align: left;
+  background: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  font-size: 1rem;
+  color: #222;
+}
