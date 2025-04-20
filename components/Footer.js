@@ -1,4 +1,5 @@
 import styles from '../styles/Footer.module.css';
+import UserMenu from './UserMenu';
 
 export default function Footer() {
   return (
@@ -9,6 +10,9 @@ export default function Footer() {
       </div>
       <div>
         <a href="#">Contato</a> | <a href="#">Política de Privacidade</a>
+      </div>
+      <div>
+        <UserMenu />
       </div>
     </footer>
   );

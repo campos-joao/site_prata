@@ -26,6 +26,27 @@ export default function Carrinho() {
 
   const total = carrinho.reduce((soma, item) => soma + Number(item.preco) * item.quantidade, 0);
 
+  // Checa se está logado
+  function usuarioLogado() {
+    try {
+      const u = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+      return u && u.nome;
+    } catch {
+      return false;
+    }
+  }
+
+  // Finalizar compra
+  function handleFinalizarCompra() {
+    if (!usuarioLogado()) {
+      // Salva que veio do carrinho
+      localStorage.setItem('redirectAfterLogin', '/carrinho');
+      window.location.href = '/login';
+      return;
+    }
+    window.location.href = '/pagamento';
+  }
+
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', fontFamily: 'sans-serif' }}>
       <h1>Carrinho de Compras</h1>
@@ -60,7 +81,7 @@ export default function Carrinho() {
         type="button"
         style={{ marginTop: 24, width: '100%', background: '#bfa46b', color: '#fff', border: 'none', borderRadius: 6, padding: '12px 0', cursor: 'pointer', fontSize: 16 }}
         disabled={carrinho.length === 0}
-        onClick={() => alert('Compra finalizada!')}
+        onClick={handleFinalizarCompra}
       >
         Finalizar Compra
       </button>

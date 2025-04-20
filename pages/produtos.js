@@ -7,6 +7,18 @@ import productsDefault from '../components/products';
 
 export default function Produtos() {
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
+  const [acessoNegado, setAcessoNegado] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+      if (!user || user.tipo !== 'admin') {
+        setAcessoNegado(true);
+        router.replace('/');
+      }
+    }
+  }, []);
   const [produtos, setProdutos] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -138,18 +150,7 @@ export default function Produtos() {
     setProdutos(produtos => produtos.filter(p => p.nome !== nome));
   };
 
-  const router = useRouter();
-  const [acessoNegado, setAcessoNegado] = useState(false);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-      if (!user) {
-        router.replace('/cadastro');
-      } else if (user.tipo !== 'admin') {
-        setAcessoNegado(true);
-      }
-    }
-  }, []);
+
 
   if (acessoNegado) {
     return (

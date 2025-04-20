@@ -18,9 +18,17 @@ export default function Login() {
     const user = usuarios.find(u => u.email === email);
     if (!user) return setErro('Usuário não encontrado!');
     if (user.senha !== senha) return setErro('Senha incorreta!');
+    if (user.bloqueado) return setErro('Não foi possivel efetuar o login, por favor entrar em contato com o adminstrador do site');
     localStorage.setItem('usuarioLogado', JSON.stringify(user));
+    alert('Login realizado com sucesso!');
+    const redirect = localStorage.getItem('redirectAfterLogin');
+    if (redirect) {
+      localStorage.removeItem('redirectAfterLogin');
+      router.push(redirect);
+    } else {
+      router.push('/');
+    }
     setErro('');
-    router.push('/');
   };
 
   return (

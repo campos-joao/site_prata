@@ -7,11 +7,9 @@ export default function HeroBanner() {
       <div className={styles.content}>
         <h1>Nova Coleção Prata 2025</h1>
         <p>Joias que celebram momentos únicos. Elegância, sofisticação e exclusividade.</p>
-        import Link from 'next/link';
-
-<Link href="/colecao" legacyBehavior>
-  <a className={styles.cta}>Ver Coleção</a>
-</Link>
+        <Link href="/colecao" legacyBehavior>
+          <a className={styles.cta}>Ver Coleção</a>
+        </Link>
       </div>
     </section>
   );
