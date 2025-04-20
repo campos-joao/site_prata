@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function Pagamento() {
   const router = useRouter();
@@ -22,7 +24,8 @@ export default function Pagamento() {
     if ((user.cartoesCredito || []).length > 0) setCartaoSelecionado(0);
   }, [router]);
 
-  function handlePagamento(e) {
+  // Função responsável por processar o pagamento e salvar o pedido no Firestore
+  async function handlePagamento(e) {
     e.preventDefault();
     let usuario = JSON.parse(localStorage.getItem('usuarioLogado'));
     let usuarios = JSON.parse(localStorage.getItem('usuarios'));
@@ -49,23 +52,30 @@ export default function Pagamento() {
         localStorage.setItem('usuarios', JSON.stringify(usuarios));
       }
     }
-    // Gerar pedido ao finalizar pagamento
+    // Busca o carrinho do localStorage
     const carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
-    if (carrinho.length > 0) {
-      const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
-      const novoPedido = {
-        id: Math.floor(Math.random() * 1000000),
-        data: new Date().toLocaleString('pt-BR'),
-        usuarioNome: usuario.nome,
-        usuarioEmail: usuario.email,
-        total: carrinho.reduce((soma, item) => soma + Number(item.preco) * (item.quantidade || 1), 0),
-        itens: carrinho.map(item => ({ nome: item.nome, qtd: item.quantidade, preco: Number(item.preco) })),
-        status: 'Finalizado'
-      };
-      pedidos.push(novoPedido);
-      localStorage.setItem('pedidos', JSON.stringify(pedidos));
-      localStorage.removeItem('carrinho');
-    }
+    if (!carrinho.length) return setMsg('Carrinho vazio!');
+
+    // Calcula o total da compra
+    const total = carrinho.reduce((soma, item) => soma + Number(item.preco) * (item.quantidade || 1), 0);
+
+    // Monta o objeto do novo pedido
+    const novoPedido = {
+      data: new Date().toLocaleString('pt-BR'), // data da compra
+      usuarioNome: usuario.nome,
+      usuarioEmail: usuario.email,
+      total,
+      itens: carrinho.map(item => ({ nome: item.nome, qtd: item.quantidade, preco: Number(item.preco) })),
+      status: 'Finalizado'
+    };
+
+    // Salva o novo pedido na coleção 'pedidos' do Firestore
+    await addDoc(collection(db, 'pedidos'), novoPedido);
+
+    // Limpa o carrinho do localStorage
+    localStorage.removeItem('carrinho');
+
+    // Mensagem de sucesso
     setMsg('Pagamento realizado com sucesso! Obrigado pela compra.');
     setTimeout(() => router.push('/'), 2000);
   }

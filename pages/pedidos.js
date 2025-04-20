@@ -1,22 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [usuario, setUsuario] = useState(null);
   const router = useRouter();
 
+  // Busca pedidos do Firestore ao montar
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    async function fetchPedidos() {
       const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
       if (!user) {
         router.push('/login');
         return;
       }
       setUsuario(user);
-      const pedidosSalvos = JSON.parse(localStorage.getItem('pedidos') || '[]');
-      setPedidos(pedidosSalvos);
+      // Busca apenas os pedidos do usuário logado (por email)
+      const q = query(collection(db, 'pedidos'), where('usuarioEmail', '==', user.email));
+      const querySnapshot = await getDocs(q);
+      setPedidos(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }
+    fetchPedidos();
   }, [router]);
 
   return (

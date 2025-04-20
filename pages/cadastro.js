@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import bcrypt from 'bcryptjs';
 
 export default function Cadastro() {
   const router = useRouter();
@@ -15,42 +18,45 @@ export default function Cadastro() {
       }
     }
   }, [router]);
-  const [usuarios, setUsuarios] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return JSON.parse(localStorage.getItem('usuarios') || '[]');
+  const [usuarios, setUsuarios] = useState([]);
+
+  // Carrega usuários do Firestore ao montar
+  useEffect(() => {
+    async function fetchUsuarios() {
+      const querySnapshot = await getDocs(collection(db, 'usuarios'));
+      setUsuarios(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }
-    return [];
-  });
+    fetchUsuarios();
+  }, []);
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [tipo, setTipo] = useState('usuario');
-  const [erro, setErro] = useState('');
-  
-
-  // Salva usuários no localStorage sempre que mudar
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('usuarios', JSON.stringify(usuarios));
-    }
-  }, [usuarios]);
 
   // Cadastro de usuário
-  const cadastrar = (e) => {
+  // Cadastro de usuário no Firestore
+  // Cadastro de usuário com hash de senha
+  const cadastrar = async (e) => {
     e.preventDefault();
     if (!nome || !email || !senha) return setErro('Preencha todos os campos!');
     if (!email.match(/^\S+@\S+\.\S+$/)) return setErro('Email inválido!');
     if (usuarios.find(u => u.email === email)) return setErro('Já existe um usuário com este email!');
-    const novo = { nome, email, senha, tipo };
-    setUsuarios([...usuarios, novo]);
-    setErro('');
-    alert('Usuário cadastrado! Faça login.');
-    setNome('');
-    setEmail('');
-    setSenha('');
+    try {
+      // Gera o hash da senha antes de salvar
+      const senhaHash = await bcrypt.hash(senha, 10);
+      const novo = { nome, email, senha: senhaHash, tipo, bloqueado: false };
+      await addDoc(collection(db, 'usuarios'), novo);
+      const snap = await getDocs(collection(db, 'usuarios'));
+      setUsuarios(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setErro('');
+      setMsg('Usuário cadastrado com sucesso! Faça login.');
+      setNome('');
+      setEmail('');
+      setSenha('');
+    } catch (err) {
+      setErro('Erro ao cadastrar usuário. Tente novamente.');
+    }
   };
-
-
 
   if (isAdmin === null) {
     return <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>Carregando...</div>;

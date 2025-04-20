@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import {
+  collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc
+} from 'firebase/firestore';
 
 export default function CriarUsuario() {
   const [nome, setNome] = useState('');
@@ -11,62 +15,86 @@ export default function CriarUsuario() {
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
-  // Carrega usuários ao montar
-  React.useEffect(() => {
-    const users = JSON.parse(localStorage.getItem('usuarios') || '[]');
-    setUsuarios(users);
-    const userLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-    setIsAdmin(!!userLogado && userLogado.tipo === 'admin');
+  // Carrega usuários do Firestore ao montar
+  useEffect(() => {
+    async function fetchUsuarios() {
+      const querySnapshot = await getDocs(collection(db, 'usuarios'));
+      const usersArr = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsuarios(usersArr);
+      // Verifica admin pelo localStorage (mantém fluxo atual)
+      const userLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+      setIsAdmin(!!userLogado && userLogado.tipo === 'admin');
+    }
+    fetchUsuarios();
   }, []);
 
-  const cadastrar = (e) => {
+  // Cadastrar ou editar usuário no Firestore
+  const cadastrar = async (e) => {
     e.preventDefault();
     if (!nome || !email || !senha) return setErro('Preencha todos os campos!');
     if (!email.match(/^\S+@\S+\.\S+$/)) return setErro('Email inválido!');
-    let usuariosSalvos = JSON.parse(localStorage.getItem('usuarios') || '[]');
+    // Busca todos usuários para checar duplicidade
+    const querySnapshot = await getDocs(collection(db, 'usuarios'));
+    const usersArr = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     if (editandoIdx !== null) {
       // Edição
-      if (usuariosSalvos.find((u, idx) => u.email === email && idx !== editandoIdx)) return setErro('Já existe um usuário com este email!');
-      usuariosSalvos[editandoIdx] = { ...usuariosSalvos[editandoIdx], nome, email, senha };
-      localStorage.setItem('usuarios', JSON.stringify(usuariosSalvos));
-      setUsuarios(usuariosSalvos);
-      setEditandoIdx(null);
-      setErro('');
-      alert('Usuário editado com sucesso!');
-      setNome(''); setEmail(''); setSenha('');
-      return;
+      const userEdit = usuarios[editandoIdx];
+      if (usersArr.find((u, idx) => u.email === email && u.id !== userEdit.id)) return setErro('Já existe um usuário com este email!');
+      try {
+        // Gera hash da senha antes de salvar
+        const senhaHash = await bcrypt.hash(senha, 10);
+        await updateDoc(doc(db, 'usuarios', userEdit.id), { nome, email, senha: senhaHash });
+        const novosUsuarios = usersArr.map(u => u.id === userEdit.id ? { ...u, nome, email, senha: senhaHash } : u);
+        setUsuarios(novosUsuarios);
+        setEditandoIdx(null);
+        setErro('');
+        alert('Usuário editado com sucesso!');
+        setNome('');
+        setEmail('');
+        setSenha('');
+        return;
+      } catch (err) {
+        setErro('Erro ao salvar usuário.');
+      }
     }
     // Cadastro
-    if (usuariosSalvos.find(u => u.email === email)) return setErro('Já existe um usuário com este email!');
-    const novo = { nome, email, senha, tipo: 'usuario' };
-    const novosUsuarios = [...usuariosSalvos, novo];
-    localStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
-    setUsuarios(novosUsuarios);
-    setErro('');
-    alert('Usuário criado com sucesso! Faça login para acessar a loja.');
-    router.push('/login');
+    if (usersArr.find(u => u.email === email)) return setErro('Já existe um usuário com este email!');
+    try {
+      // Gera hash da senha antes de salvar
+      const senhaHash = await bcrypt.hash(senha, 10);
+      const novo = { nome, email, senha: senhaHash, tipo: 'usuario', bloqueado: false };
+      await addDoc(collection(db, 'usuarios'), novo);
+      // Atualiza lista
+      const snap = await getDocs(collection(db, 'usuarios'));
+      setUsuarios(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setErro('');
+      alert('Usuário criado com sucesso! Faça login para acessar a loja.');
+      router.push('/login');
+    } catch (err) {
+      setErro('Erro ao salvar usuário.');
+    }
   };
 
-  // Excluir usuário
-  const excluirUsuario = (idx) => {
+  // Excluir usuário do Firestore
+  const excluirUsuario = async (idx) => {
     if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
-    const usuariosSalvos = JSON.parse(localStorage.getItem('usuarios') || '[]');
-    usuariosSalvos.splice(idx, 1);
-    localStorage.setItem('usuarios', JSON.stringify(usuariosSalvos));
-    setUsuarios(usuariosSalvos);
+    const user = usuarios[idx];
+    await deleteDoc(doc(db, 'usuarios', user.id));
+    const snap = await getDocs(collection(db, 'usuarios'));
+    setUsuarios(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     if (editandoIdx === idx) cancelarEdicao();
   };
 
-  // Bloquear/desbloquear usuário
-  const toggleBloqueioUsuario = (idx) => {
-    const usuariosSalvos = JSON.parse(localStorage.getItem('usuarios') || '[]');
-    const atual = usuariosSalvos[idx];
-    usuariosSalvos[idx] = { ...atual, bloqueado: !atual.bloqueado };
-    localStorage.setItem('usuarios', JSON.stringify(usuariosSalvos));
-    setUsuarios(usuariosSalvos);
+  // Bloquear/desbloquear usuário no Firestore
+  const toggleBloqueioUsuario = async (idx) => {
+    const user = usuarios[idx];
+    await updateDoc(doc(db, 'usuarios', user.id), { bloqueado: !user.bloqueado });
+    const snap = await getDocs(collection(db, 'usuarios'));
+    setUsuarios(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
   // Função para iniciar edição
+  // Preenche campos para edição
   const editarUsuario = (idx) => {
     const u = usuarios[idx];
     setNome(u.nome);

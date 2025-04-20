@@ -3,24 +3,34 @@ import styles from '../styles/Login.module.css';
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import bcrypt from 'bcryptjs';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
+  const [msg, setMsg] = useState('');
   const router = useRouter();
 
-  const handleLogin = (e) => {
+  // Login de usuário usando Firestore e bcryptjs
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !senha) return setErro('Preencha todos os campos!');
     if (!email.match(/^\S+@\S+\.\S+$/)) return setErro('Email inválido!');
-    const usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
-    const user = usuarios.find(u => u.email === email);
-    if (!user) return setErro('Usuário não encontrado!');
-    if (user.senha !== senha) return setErro('Senha incorreta!');
+    // Busca usuário no Firestore
+    const q = query(collection(db, 'usuarios'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return setErro('Usuário não encontrado!');
+    const user = querySnapshot.docs[0].data();
+    // Compara senha digitada com hash salvo usando bcryptjs
+    const senhaCorreta = await bcrypt.compare(senha, user.senha);
+    if (!senhaCorreta) return setErro('Senha incorreta!');
     if (user.bloqueado) return setErro('Não foi possivel efetuar o login, por favor entrar em contato com o adminstrador do site');
     localStorage.setItem('usuarioLogado', JSON.stringify(user));
-    alert('Login realizado com sucesso!');
+    setErro('');
+    setMsg('Login realizado com sucesso!');
     const redirect = localStorage.getItem('redirectAfterLogin');
     if (redirect) {
       localStorage.removeItem('redirectAfterLogin');
@@ -28,7 +38,6 @@ export default function Login() {
     } else {
       router.push('/');
     }
-    setErro('');
   };
 
   return (

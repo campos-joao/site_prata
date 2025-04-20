@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import {
+  collection, getDocs, addDoc, updateDoc, deleteDoc, doc
+} from 'firebase/firestore';
 
+// productsDefault pode ser usado como fallback inicial, mas não será salvo em localStorage
 import productsDefault from '../components/products';
 
 export default function Produtos() {
@@ -19,24 +22,17 @@ export default function Produtos() {
       }
     }
   }, []);
-  const [produtos, setProdutos] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const salvos = JSON.parse(localStorage.getItem('produtos') || 'null');
-        if (Array.isArray(salvos) && salvos.length > 0) return salvos;
-      } catch {}
+  // Lista de produtos vinda do Firestore
+  const [produtos, setProdutos] = useState([]);
+
+  // Carrega produtos do Firestore ao montar
+  useEffect(() => {
+    async function fetchProdutos() {
+      const querySnapshot = await getDocs(collection(db, 'produtos'));
+      setProdutos(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }
-    // Se não há nada salvo, retorna os defaults
-    return productsDefault.map(p => ({
-      nome: p.name || p.nome,
-      quantidade: 1,
-      descricao: p.descricao,
-      preco: (p.price ? p.price.replace('R$','').replace(',','.') : ''),
-      categoria: p.categoria || (p.name && p.name.toLowerCase().includes('anel') ? 'Anéis' : p.name && p.name.toLowerCase().includes('colar') ? 'Colares' : p.name && p.name.toLowerCase().includes('pulseira') ? 'Pulseiras' : p.name && p.name.toLowerCase().includes('brinco') ? 'Brincos' : p.name && p.name.toLowerCase().includes('relógio') ? 'Relógios' : ''),
-      foto: p.image || null,
-      destaque: false,
-    }));
-  });
+    fetchProdutos();
+  }, []);
   const [nome, setNome] = useState('');
   const [quantidade, setQuantidade] = useState(1);
   const [descricao, setDescricao] = useState('');
@@ -54,23 +50,16 @@ export default function Produtos() {
     setIsClient(true);
   }, []);
 
-  // Salvar produtos no localStorage sempre que mudar
-  useEffect(() => {
-    if (typeof window !== 'undefined' && Array.isArray(produtos) && produtos.length > 0) {
-      localStorage.setItem('produtos', JSON.stringify(produtos));
-    }
-  }, [produtos]);
 
-  // Adicionar produto
-  const adicionarProduto = (e) => {
+  // Adicionar ou editar produto no Firestore
+  const adicionarProduto = async (e) => {
     e.preventDefault();
     if (!nome) return;
     if (editando !== null) {
       // Edição
       if (!window.confirm('Salvar alterações deste produto?')) return;
-      const novosProdutos = [...produtos];
-      novosProdutos[editando] = {
-        ...novosProdutos[editando],
+      const produtoEdit = produtos[editando];
+      await updateDoc(doc(db, 'produtos', produtoEdit.id), {
         nome,
         quantidade: Number(quantidade),
         descricao,
@@ -80,8 +69,10 @@ export default function Produtos() {
         tamanho,
         material,
         destaque,
-      };
-      setProdutos(novosProdutos);
+      });
+      // Atualiza lista
+      const snap = await getDocs(collection(db, 'produtos'));
+      setProdutos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setEditando(null);
       setDestaque(false);
       setTamanho('');
@@ -89,28 +80,30 @@ export default function Produtos() {
     } else {
       // Cadastro
       if (!window.confirm('Tem certeza que deseja cadastrar este produto?')) return;
-      const idx = produtos.findIndex(p => p.nome === nome);
-      if (idx > -1) {
+      // Verifica se já existe produto com mesmo nome
+      const exists = produtos.find(p => p.nome === nome);
+      if (exists) {
         // Se já existe, incrementa quantidade
-        const novosProdutos = [...produtos];
-        novosProdutos[idx].quantidade += Number(quantidade);
-        setProdutos(novosProdutos);
+        await updateDoc(doc(db, 'produtos', exists.id), {
+          ...exists,
+          quantidade: Number(exists.quantidade) + Number(quantidade)
+        });
       } else {
-        setProdutos([
-          ...produtos,
-          {
-            nome,
-            quantidade: Number(quantidade),
-            descricao,
-            preco,
-            categoria,
-            foto,
-            tamanho,
-            material,
-            destaque,
-          },
-        ]);
+        await addDoc(collection(db, 'produtos'), {
+          nome,
+          quantidade: Number(quantidade),
+          descricao,
+          preco,
+          categoria,
+          foto,
+          tamanho,
+          material,
+          destaque,
+        });
       }
+      // Atualiza lista
+      const snap = await getDocs(collection(db, 'produtos'));
+      setProdutos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }
     setNome('');
     setQuantidade(1);
@@ -123,31 +116,43 @@ export default function Produtos() {
     setDestaque(false);
   };
 
-  // Função para iniciar edição
+  // Função para iniciar edição de produto (preenche campos do formulário)
   const editarProduto = (idx) => {
-    const produto = produtos[idx];
-    setNome(produto.nome);
-    setQuantidade(produto.quantidade);
-    setDescricao(produto.descricao);
-    setPreco(produto.preco);
-    setCategoria(produto.categoria);
-    setFoto(produto.foto || null);
-    setTamanho(produto.tamanho || '');
-    setMaterial(produto.material || '');
+    const p = produtos[idx];
+    setNome(p.nome);
+    setQuantidade(p.quantidade);
+    setDescricao(p.descricao);
+    setPreco(p.preco);
+    setCategoria(p.categoria);
+    setFoto(p.foto);
+    setTamanho(p.tamanho);
+    setMaterial(p.material);
+    setDestaque(p.destaque);
     setDestaque(!!produto.destaque);
     setEditando(idx);
   };
 
-  // Remover 1 unidade do produto
-  const removerProduto = (nome) => {
-    setProdutos(produtos => produtos.map(p =>
-      p.nome === nome && p.quantidade > 1 ? { ...p, quantidade: p.quantidade - 1 } : p
-    ));
+  // Remover 1 unidade do produto no Firestore
+  const removerProduto = async (nome) => {
+    const produto = produtos.find(p => p.nome === nome);
+    if (produto && produto.quantidade > 1) {
+      await updateDoc(doc(db, 'produtos', produto.id), {
+        ...produto,
+        quantidade: produto.quantidade - 1
+      });
+      const snap = await getDocs(collection(db, 'produtos'));
+      setProdutos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }
   };
 
-  // Excluir produto completamente
-  const excluirProduto = (nome) => {
-    setProdutos(produtos => produtos.filter(p => p.nome !== nome));
+  // Excluir produto completamente do Firestore
+  const excluirProduto = async (nome) => {
+    const produto = produtos.find(p => p.nome === nome);
+    if (produto) {
+      await deleteDoc(doc(db, 'produtos', produto.id));
+      const snap = await getDocs(collection(db, 'produtos'));
+      setProdutos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }
   };
 
 
