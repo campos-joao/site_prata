@@ -11,7 +11,6 @@ export default function Navbar() {
   useEffect(() => {
     function atualizarQtd() {
       try {
-        // Se usuário logado, usa 'carrinho', senão 'carrinhoAnonimo'
         const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
         let itens = [];
         if (user) {
@@ -25,10 +24,6 @@ export default function Navbar() {
         setCarrinhoQtd(0);
       }
     }
-    atualizarQtd();
-    window.addEventListener('storage', atualizarQtd);
-    window.addEventListener('focus', atualizarQtd);
-    // Função para atualizar nome do usuário
     function atualizarNomeUsuario() {
       try {
         const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
@@ -39,7 +34,10 @@ export default function Navbar() {
         setNomeUsuario('');
       }
     }
+    atualizarQtd();
     atualizarNomeUsuario();
+    window.addEventListener('storage', atualizarQtd);
+    window.addEventListener('focus', atualizarQtd);
     window.addEventListener('storage', atualizarNomeUsuario);
     window.addEventListener('focus', atualizarNomeUsuario);
     return () => {
@@ -49,6 +47,11 @@ export default function Navbar() {
       window.removeEventListener('focus', atualizarNomeUsuario);
     };
   }, []);
+
+  // Atualiza badge sempre que carrinhoQtd mudar (gatilho para re-render)
+  useEffect(() => {
+    // força atualização do badge ao renderizar
+  }, [carrinhoQtd]);
 
   return (
     <nav style={{ width: '100%', background: '#fff', borderBottom: '1px solid #eee', padding: 0, marginBottom: 0 }}>

@@ -31,6 +31,7 @@ export default function Carrinho() {
     // Remove o item da lista local
     const novo = carrinho.filter(item => item.nome !== nome);
     setCarrinho(novo);
+    localStorage.setItem('carrinho', JSON.stringify(novo));
     // Atualiza o documento do carrinho no Firestore
     await setDoc(doc(db, 'carrinhos', user.email), { itens: novo });
   };
@@ -45,6 +46,7 @@ export default function Carrinho() {
       item.nome === nome ? { ...item, quantidade: Math.max(1, item.quantidade + delta) } : item
     );
     setCarrinho(novo);
+    localStorage.setItem('carrinho', JSON.stringify(novo));
     // Atualiza o documento do carrinho no Firestore
     await setDoc(doc(db, 'carrinhos', user.email), { itens: novo });
   };
