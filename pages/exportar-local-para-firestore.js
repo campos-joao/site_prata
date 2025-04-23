@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import bcrypt from 'bcryptjs';
 import { useRouter } from 'next/router';
 import { db } from '../firebaseConfig';
 import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
-import bcrypt from 'bcryptjs';
 
 export default function ExportarLocalParaFirestore() {
   const [mensagem, setMensagem] = useState('');

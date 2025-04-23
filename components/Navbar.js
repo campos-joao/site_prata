@@ -11,13 +11,23 @@ export default function Navbar() {
   useEffect(() => {
     function atualizarQtd() {
       try {
-        const carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
-        setCarrinhoQtd(carrinho.reduce((acc, item) => acc + (item.quantidade || 1), 0));
+        // Se usuário logado, usa 'carrinho', senão 'carrinhoAnonimo'
+        const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        let itens = [];
+        if (user) {
+          itens = JSON.parse(localStorage.getItem('carrinho') || '[]');
+        } else {
+          itens = JSON.parse(localStorage.getItem('carrinhoAnonimo') || '[]');
+        }
+        const qtd = itens.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+        setCarrinhoQtd(qtd);
       } catch {
         setCarrinhoQtd(0);
       }
     }
     atualizarQtd();
+    window.addEventListener('storage', atualizarQtd);
+    window.addEventListener('focus', atualizarQtd);
     // Função para atualizar nome do usuário
     function atualizarNomeUsuario() {
       try {
@@ -86,7 +96,9 @@ export default function Navbar() {
           <Link href="/carrinho" legacyBehavior>
             <a style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, position: 'relative', display: 'inline-block' }} aria-label="Sacola">
               <svg width="22" height="22" fill="#bfa46b" viewBox="0 0 24 24"><path d="M7 18c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V8H7v10zM19 6h-2.18C16.4 4.84 15.3 4 14 4s-2.4.84-2.82 2H9c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7 2V6c0-1.1.9-2 2-2s2 .9 2 2v2h-4z"/></svg>
-              <span style={{ position: 'absolute', top: -6, right: -6, background: '#e74c3c', color: '#fff', borderRadius: '50%', fontSize: 11, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{carrinhoQtd}</span>
+              {carrinhoQtd > 0 && (
+                <span style={{ position: 'absolute', top: -6, right: -6, background: '#e74c3c', color: '#fff', borderRadius: '50%', fontSize: 11, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{carrinhoQtd}</span>
+              )}
             </a>
           </Link>
         </div>

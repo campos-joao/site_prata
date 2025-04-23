@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import bcrypt from 'bcryptjs';
 import { useRouter } from 'next/router';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
-import bcrypt from 'bcryptjs';
 
 export default function Cadastro() {
   const router = useRouter();

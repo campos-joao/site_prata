@@ -1,11 +1,11 @@
 import Head from 'next/head';
+import bcrypt from 'bcryptjs';
 import styles from '../styles/Login.module.css';
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { db } from '../firebaseConfig';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import bcrypt from 'bcryptjs';
 
 export default function Login() {
   const [email, setEmail] = useState('');
