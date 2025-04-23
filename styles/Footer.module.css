@@ -7,6 +7,16 @@
   align-items: center;
   font-size: 1rem;
 }
+
+@media (max-width: 600px) {
+  .footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    font-size: 0.98rem;
+    padding: 1rem;
+  }
+}
 .footer a {
   color: #bfa46b;
   text-decoration: none;

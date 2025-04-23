@@ -3,6 +3,26 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 2rem;
 }
+
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .card {
+    max-width: 100%;
+    padding: 1rem;
+  }
+  .image, .imageExpanded {
+    width: 90vw;
+    max-width: 220px;
+    height: auto;
+  }
+  .details {
+    font-size: 0.98rem;
+    padding: 0.7rem;
+  }
+}
 .card {
   background: #fff;
   border-radius: 12px;

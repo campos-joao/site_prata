@@ -18,3 +18,18 @@ h1, h2, h3 {
 *, *::before, *::after {
   box-sizing: border-box;
 }
+
+/* Responsividade geral */
+@media (max-width: 600px) {
+  html, body {
+    font-size: 15px;
+    padding: 0;
+  }
+  h1, h2, h3 {
+    font-size: 1.2em;
+    letter-spacing: 0.2px;
+  }
+  body {
+    padding: 0 4px;
+  }
+}
