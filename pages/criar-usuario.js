@@ -13,6 +13,7 @@ export default function CriarUsuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [editandoIdx, setEditandoIdx] = useState(null); // índice do usuário sendo editado
   const [isAdmin, setIsAdmin] = useState(false);
+  const [tipo, setTipo] = useState('usuario'); // tipo selecionado para novo usuário
   const router = useRouter();
 
   // Carrega usuários do Firestore ao montar
@@ -62,7 +63,7 @@ export default function CriarUsuario() {
     try {
       // Gera hash da senha antes de salvar
       const senhaHash = await bcrypt.hash(senha, 10);
-      const novo = { nome, email, senha: senhaHash, tipo: 'usuario', bloqueado: false };
+      const novo = { nome, email, senha: senhaHash, tipo: isAdmin ? tipo : 'usuario', bloqueado: false };
       await addDoc(collection(db, 'usuarios'), novo);
       // Atualiza lista
       const snap = await getDocs(collection(db, 'usuarios'));
@@ -143,6 +144,16 @@ export default function CriarUsuario() {
           onChange={e => setSenha(e.target.value)}
           style={{ marginBottom: 10, width: '100%' }}
         />
+        {isAdmin && (
+          <select
+            value={tipo}
+            onChange={e => setTipo(e.target.value)}
+            style={{ marginBottom: 10, width: '100%' }}
+          >
+            <option value="usuario">Usuário comum</option>
+            <option value="admin">Administrador</option>
+          </select>
+        )}
         <button type="submit" style={{ width: '100%' }}>Criar Conta</button>
       </form>
       {erro && <div style={{ color: 'red', marginTop: 12 }}>{erro}</div>}

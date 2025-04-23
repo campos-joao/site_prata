@@ -3,7 +3,7 @@ import productsDefault from './products';
 
 import { useState } from 'react';
 
-export default function ProductGrid({ products = productsDefault }) {
+export default function ProductGrid({ products = productsDefault, onAdicionarCarrinho }) {
   const [expandedIdx, setExpandedIdx] = useState(null);
 
   const handleExpand = (idx) => {
@@ -49,17 +49,11 @@ export default function ProductGrid({ products = productsDefault }) {
                 }}
                 onClick={e => {
                   e.stopPropagation();
-                  const carrinho = JSON.parse(localStorage.getItem('carrinho') || '[]');
-                  // Verifica se já existe o produto no carrinho
-                  const nome = product.nome || product.name;
-                  const idxExistente = carrinho.findIndex(p => (p.nome || p.name) === nome);
-                  if (idxExistente !== -1) {
-                    carrinho[idxExistente].quantidade = (carrinho[idxExistente].quantidade || 1) + 1;
+                  if (onAdicionarCarrinho) {
+                    onAdicionarCarrinho(product);
                   } else {
-                    carrinho.push({ ...product, quantidade: 1 });
+                    alert('Função de adicionar ao carrinho não definida!');
                   }
-                  localStorage.setItem('carrinho', JSON.stringify(carrinho));
-                  alert('Produto adicionado ao carrinho!');
                 }}
               >
                 Adicionar ao Carrinho

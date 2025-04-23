@@ -31,11 +31,11 @@ export default function Loja() {
   }, []);
 
   // Função para adicionar um produto ao carrinho no Firestore
-  // Função para adicionar um produto ao carrinho
 const adicionarCarrinho = async (produto) => {
+  console.log('adicionarCarrinho chamado', produto);
   const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
   if (!user) {
-    // Usuário não logado: salva no localStorage
+    // Não logado: salva no localStorage
     let anonCarrinho = JSON.parse(localStorage.getItem('carrinhoAnonimo') || '[]');
     const idx = anonCarrinho.findIndex(item => item.nome === produto.nome);
     if (idx > -1) {
@@ -48,28 +48,34 @@ const adicionarCarrinho = async (produto) => {
     alert('Produto adicionado ao carrinho! Faça login para salvar seu carrinho.');
     return;
   }
-  // Usuário logado: busca carrinho do Firestore
+
+  // Logado: salva no Firestore
   let itens = [];
   try {
     const carrinhoDoc = await getDoc(doc(db, 'carrinhos', user.email));
     if (carrinhoDoc.exists()) {
       itens = carrinhoDoc.data().itens || [];
     }
-  } catch (error) {
+  } catch (e) {
+    console.error('Erro ao buscar carrinho do Firestore:', e);
     itens = [];
   }
+
   const idx = itens.findIndex(item => item.nome === produto.nome);
   if (idx > -1) {
     itens[idx].quantidade = (itens[idx].quantidade || 1) + 1;
   } else {
     itens.push({ ...produto, quantidade: 1 });
   }
+
   try {
     await setDoc(doc(db, 'carrinhos', user.email), { itens });
     setCarrinho([...itens]);
     alert('Produto adicionado ao carrinho!');
+    console.log('Carrinho salvo no Firestore:', user.email, itens);
   } catch (error) {
-    alert('Erro ao adicionar produto ao carrinho. Tente novamente.');
+    alert('Erro ao salvar no Firestore: ' + error.message);
+    console.error('Erro ao salvar no Firestore:', error);
   }
 };
 
@@ -137,7 +143,7 @@ useEffect(() => {
       <main className={styles.main}>
         <h2 className={styles.title}>Loja - Coleção Prata 2025</h2>
         {usuario && <div style={{ marginBottom: 20 }}>Bem-vindo, {usuario.nome}!</div>}
-        <ProductGrid />
+        <ProductGrid products={produtos} onAdicionarCarrinho={adicionarCarrinho} />
         <h2 style={{ marginTop: 40 }}>Carrinho</h2>
         <ul>
           {carrinho.length === 0 && <li>Carrinho vazio.</li>}
