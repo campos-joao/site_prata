@@ -33,10 +33,9 @@ export default function Loja() {
   // Função para adicionar um produto ao carrinho no Firestore
   // Função para adicionar um produto ao carrinho
 const adicionarCarrinho = async (produto) => {
-  // Busca o usuário logado
   const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
   if (!user) {
-    // Se não estiver logado, salva o carrinho no localStorage (carrinho anônimo)
+    // Usuário não logado: salva no localStorage
     let anonCarrinho = JSON.parse(localStorage.getItem('carrinhoAnonimo') || '[]');
     const idx = anonCarrinho.findIndex(item => item.nome === produto.nome);
     if (idx > -1) {
@@ -49,22 +48,29 @@ const adicionarCarrinho = async (produto) => {
     alert('Produto adicionado ao carrinho! Faça login para salvar seu carrinho.');
     return;
   }
-  // Se estiver logado, busca o carrinho do Firestore
-  const carrinhoDoc = await getDoc(doc(db, 'carrinhos', user.email));
+  // Usuário logado: busca carrinho do Firestore
   let itens = [];
-  if (carrinhoDoc.exists()) {
-    itens = carrinhoDoc.data().itens || [];
+  try {
+    const carrinhoDoc = await getDoc(doc(db, 'carrinhos', user.email));
+    if (carrinhoDoc.exists()) {
+      itens = carrinhoDoc.data().itens || [];
+    }
+  } catch (error) {
+    itens = [];
   }
-  // Verifica se o produto já está no carrinho
   const idx = itens.findIndex(item => item.nome === produto.nome);
   if (idx > -1) {
     itens[idx].quantidade = (itens[idx].quantidade || 1) + 1;
   } else {
     itens.push({ ...produto, quantidade: 1 });
   }
-  // Atualiza o documento do carrinho no Firestore
-  await setDoc(doc(db, 'carrinhos', user.email), { itens });
-  setCarrinho(itens);
+  try {
+    await setDoc(doc(db, 'carrinhos', user.email), { itens });
+    setCarrinho([...itens]);
+    alert('Produto adicionado ao carrinho!');
+  } catch (error) {
+    alert('Erro ao adicionar produto ao carrinho. Tente novamente.');
+  }
 };
 
 // useEffect para sincronizar carrinho anônimo ao logar
