@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 import { db } from '../firebaseConfig';
 import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
 import bcrypt from 'bcryptjs';
@@ -6,6 +7,22 @@ import bcrypt from 'bcryptjs';
 export default function ExportarLocalParaFirestore() {
   const [mensagem, setMensagem] = useState('');
   const [exportando, setExportando] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(null); // null: carregando, false: não admin, true: admin
+
+  const router = useRouter();
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+      if (!user || user.tipo !== 'admin') {
+        setIsAdmin(false);
+        setTimeout(() => {
+          router.replace('/');
+        }, 1500);
+      } else {
+        setIsAdmin(true);
+      }
+    }
+  }, [router]);
 
   // Função para exportar usuários do localStorage para Firestore
   const exportarUsuarios = async () => {
@@ -119,6 +136,17 @@ export default function ExportarLocalParaFirestore() {
     setMensagem('Exportação concluída!');
   };
 
+  if (isAdmin === null) {
+    return <div style={{ textAlign: 'center', marginTop: 60 }}>Carregando...</div>;
+  }
+  if (isAdmin === false) {
+    return (
+      <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'sans-serif', textAlign: 'center', color: 'red' }}>
+        <h2>Acesso negado</h2>
+        <p>Você precisa ser um administrador para acessar esta página.</p>
+      </div>
+    );
+  }
   return (
     <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>
       <h2>Exportar LocalStorage para Firestore</h2>
