@@ -47,6 +47,7 @@ export default function Produtos() {
   const [buscaInput, setBuscaInput] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
   const [filtroDestaque, setFiltroDestaque] = useState(false);
+  const [filtroDestaqueInput, setFiltroDestaqueInput] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -189,10 +190,25 @@ setDestaque(!!p.destaque);
         />
         <button
           type="button"
-          onClick={() => setBusca(buscaInput)}
-          style={{ padding: 8, borderRadius: 6, border: '1px solid #bfa46b', background: '#bfa46b', color: '#fff', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}
+          onClick={() => {
+            setBusca(buscaInput);
+            setFiltroDestaque(filtroDestaqueInput);
+          }}
+          style={{ padding: 8, borderRadius: 6, border: '1px solid #bfa46b', background: '#bfa46b', color: '#fff', fontWeight: 'bold', fontSize: 16, cursor: 'pointer', marginRight: 8 }}
         >
           Aplicar busca
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setBuscaInput('');
+            setBusca('');
+            setFiltroDestaqueInput(false);
+            setFiltroDestaque(false);
+          }}
+          style={{ padding: 8, borderRadius: 6, border: '1px solid #888', background: '#888', color: '#fff', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}
+        >
+          Limpar
         </button>
         <select
           value={filtroCategoria}
@@ -328,8 +344,8 @@ setDestaque(!!p.destaque);
           <label style={{ fontSize: 15 }}>
             <input
               type="checkbox"
-              checked={filtroDestaque}
-              onChange={e => setFiltroDestaque(e.target.checked)}
+              checked={filtroDestaqueInput}
+              onChange={e => setFiltroDestaqueInput(e.target.checked)}
               style={{ marginRight: 8 }}
             />
             Mostrar apenas produtos em destaque
