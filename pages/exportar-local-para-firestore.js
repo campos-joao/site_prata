@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import bcrypt from 'bcryptjs';
 import { useRouter } from 'next/router';
 import { db } from '../firebaseConfig';
-import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, setDoc, doc, getDocs, deleteDoc } from 'firebase/firestore';
 
 export default function ExportarLocalParaFirestore() {
   const [mensagem, setMensagem] = useState('');
@@ -126,6 +126,31 @@ export default function ExportarLocalParaFirestore() {
     setExportando(false);
   };
 
+  // Função para migrar usuários antigos para ID=email
+  const migrarUsuariosParaEmailComoID = async () => {
+    setExportando(true);
+    setMensagem('Migrando usuários antigos...');
+    try {
+      const usuariosSnap = await getDocs(collection(db, 'usuarios'));
+      let migrados = 0, pulados = 0;
+      for (const docSnap of usuariosSnap.docs) {
+        const dados = docSnap.data();
+        const idAtual = docSnap.id;
+        if (!dados.email) { pulados++; continue; }
+        if (idAtual === dados.email) { pulados++; continue; }
+        // Cria novo doc com ID = email
+        await setDoc(doc(db, 'usuarios', dados.email), { ...dados });
+        // Remove doc antigo
+        await deleteDoc(doc(db, 'usuarios', idAtual));
+        migrados++;
+      }
+      setMensagem(`${migrados} usuários migrados, ${pulados} já estavam corretos ou sem email.`);
+    } catch (err) {
+      setMensagem('Erro ao migrar usuários: ' + err.message);
+    }
+    setExportando(false);
+  };
+
   // Função para exportar todos os dados
   const exportarTudo = async () => {
     setMensagem('Exportando usuários, produtos, carrinhos e pedidos...');
@@ -151,6 +176,7 @@ export default function ExportarLocalParaFirestore() {
     <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>
       <h2>Exportar LocalStorage para Firestore</h2>
       <button onClick={exportarUsuarios} disabled={exportando} style={{ margin: 8 }}>Exportar Usuários</button>
+      <button onClick={migrarUsuariosParaEmailComoID} disabled={exportando} style={{ margin: 8, background: '#f2c94c' }}>Migrar Usuários antigos (ID=email)</button>
       <button onClick={exportarProdutos} disabled={exportando} style={{ margin: 8 }}>Exportar Produtos</button>
       <button onClick={exportarCarrinhos} disabled={exportando} style={{ margin: 8 }}>Exportar Carrinhos</button>
       <button onClick={exportarPedidos} disabled={exportando} style={{ margin: 8 }}>Exportar Pedidos</button>

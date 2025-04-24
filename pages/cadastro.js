@@ -45,7 +45,7 @@ export default function Cadastro() {
       // Gera o hash da senha antes de salvar
       const senhaHash = await bcrypt.hash(senha, 10);
       const novo = { nome, email, senha: senhaHash, tipo, bloqueado: false };
-      await addDoc(collection(db, 'usuarios'), novo);
+      await setDoc(doc(db, 'usuarios', email), novo);
       const snap = await getDocs(collection(db, 'usuarios'));
       setUsuarios(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setErro('');

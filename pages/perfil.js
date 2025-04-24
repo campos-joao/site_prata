@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { db } from '../firebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function Perfil() {
   const [usuario, setUsuario] = useState(null);
@@ -19,6 +21,18 @@ export default function Perfil() {
   const router = useRouter();
 
   useEffect(() => {
+    async function fetchCartoesFirestore(userEmail) {
+      try {
+        const userDoc = await getDoc(doc(db, 'usuarios', userEmail));
+        if (userDoc.exists() && userDoc.data().cartoesCredito) {
+          setCartoes(userDoc.data().cartoesCredito);
+        } else {
+          setCartoes([]);
+        }
+      } catch (err) {
+        setCartoes([]);
+      }
+    }
     if (typeof window !== 'undefined') {
       const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
       if (!user) {
@@ -32,13 +46,13 @@ export default function Perfil() {
       setCpf(user.cpf || '');
       setEndereco(user.endereco || '');
       setTelefone(user.telefone || '');
-      setCartoes(user.cartoesCredito || []);
+      fetchCartoesFirestore(user.email);
       setCartaoEdit({ nome: '', numero: '', validade: '', cvv: '', principal: false });
       setEditIdx(null);
     }
   }, [router]);
 
-  const salvar = (e) => {
+  const salvar = async (e) => {
     e.preventDefault();
     if (!nome || !email || !senha || !cpf || !endereco || !telefone) return setErro('Preencha todos os campos!');
     if (!email.match(/^\S+@\S+\.\S+$/)) return setErro('Email inválido!');
@@ -55,9 +69,24 @@ export default function Perfil() {
     const novoLogado = { ...usuario, nome, email, senha, cpf, endereco, telefone, cartoesCredito: cartoes };
     localStorage.setItem('usuarioLogado', JSON.stringify(novoLogado));
     setUsuario(novoLogado);
-    setErro('');
-    setSucesso('Perfil atualizado com sucesso!');
+    // Salva cartões no Firestore
+    try {
+      await setDoc(doc(db, 'usuarios', email), {
+        nome,
+        email,
+        senha,
+        cpf,
+        endereco,
+        telefone,
+        cartoesCredito: cartoes,
+      }, { merge: true });
+      setErro('');
+      setSucesso('Perfil atualizado com sucesso!');
+    } catch (err) {
+      setErro('Erro ao salvar no Firestore. Tente novamente.');
+    }
   };
+
 
   if (!usuario) return null;
 
@@ -191,6 +220,12 @@ localStorage.setItem('usuarioLogado', JSON.stringify(usuarioAtualizado));
 const usuariosAtualizados = usuarios.map(u => u.email === usuarioAtual.email ? { ...u, cartoesCredito: novos } : u);
 localStorage.setItem('usuarios', JSON.stringify(usuariosAtualizados));
 setUsuario(usuarioAtualizado);
+// Salva cartões no Firestore imediatamente
+(async () => {
+  try {
+    await setDoc(doc(db, 'usuarios', usuarioAtual.email), { cartoesCredito: novos }, { merge: true });
+  } catch (e) { /* opcional: tratar erro */ }
+})();
                 }}>Remover</button>
                 {!c.principal && (
                   <button type="button" style={{ background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 12px', fontSize: 14, cursor: 'pointer' }} onClick={() => {
@@ -204,6 +239,12 @@ localStorage.setItem('usuarioLogado', JSON.stringify(usuarioAtualizado));
 const usuariosAtualizados = usuarios.map(u => u.email === usuarioAtual.email ? { ...u, cartoesCredito: novos } : u);
 localStorage.setItem('usuarios', JSON.stringify(usuariosAtualizados));
 setUsuario(usuarioAtualizado);
+// Salva cartões no Firestore imediatamente
+(async () => {
+  try {
+    await setDoc(doc(db, 'usuarios', usuarioAtual.email), { cartoesCredito: novos }, { merge: true });
+  } catch (e) { /* opcional: tratar erro */ }
+})();
                   }}>Definir como Principal</button>
                 )}
               </li>
@@ -275,6 +316,12 @@ localStorage.setItem('usuarioLogado', JSON.stringify(usuarioAtualizado));
 const usuariosAtualizados = usuarios.map(u => u.email === usuarioAtual.email ? { ...u, cartoesCredito: novos } : u);
 localStorage.setItem('usuarios', JSON.stringify(usuariosAtualizados));
 setUsuario(usuarioAtualizado);
+// Salva cartões no Firestore imediatamente
+(async () => {
+  try {
+    await setDoc(doc(db, 'usuarios', usuarioAtual.email), { cartoesCredito: novos }, { merge: true });
+  } catch (e) { /* opcional: tratar erro */ }
+})();
               setCartaoEdit({ nome: '', numero: '', validade: '', cvv: '', principal: false });
               setEditIdx(null);
               setErro('');

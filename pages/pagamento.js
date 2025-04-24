@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { db } from '../firebaseConfig';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function Pagamento() {
   const router = useRouter();
@@ -11,6 +11,34 @@ export default function Pagamento() {
   const [cartaoSelecionado, setCartaoSelecionado] = useState(null); // índice do cartão selecionado
   const [novoCartao, setNovoCartao] = useState({ nome: '', numero: '', validade: '', cvv: '' });
   const [msg, setMsg] = useState('');
+  const [cadastrando, setCadastrando] = useState(false); // Para controle do botão
+
+  // Função para cadastrar cartão e salvar no Firestore
+  async function handleCadastrarCartao(e) {
+    e.preventDefault();
+    if (!novoCartao.nome || !novoCartao.numero || !novoCartao.validade || !novoCartao.cvv) {
+      setMsg('Preencha todos os dados do cartão!');
+      return;
+    }
+    setCadastrando(true);
+    const usuario = JSON.parse(localStorage.getItem('usuarioLogado'));
+    let cartoesAtualizados = [...cartoes, { ...novoCartao, principal: cartoes.length === 0 }];
+    try {
+      await setDoc(doc(db, 'usuarios', usuario.email), {
+        cartoesCredito: cartoesAtualizados
+      }, { merge: true });
+      // Atualiza localStorage e estado local
+      usuario.cartoesCredito = cartoesAtualizados;
+      localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
+      setCartoes(cartoesAtualizados);
+      setCartaoSelecionado(cartoesAtualizados.length - 1);
+      setNovoCartao({ nome: '', numero: '', validade: '', cvv: '' });
+      setMsg('Cartão cadastrado com sucesso! Agora finalize o pagamento.');
+    } catch (err) {
+      setMsg('Erro ao salvar cartão no Firestore. Tente novamente.');
+    }
+    setCadastrando(false);
+  }
 
   useEffect(() => {
     // Se não estiver logado, redireciona para login
@@ -20,8 +48,21 @@ export default function Pagamento() {
       router.push('/login');
       return;
     }
-    setCartoes(user.cartoesCredito || []);
-    if ((user.cartoesCredito || []).length > 0) setCartaoSelecionado(0);
+    // Busca cartões do Firestore
+    async function fetchCartoesFirestore() {
+      try {
+        const userDoc = await getDoc(doc(db, 'usuarios', user.email));
+        if (userDoc.exists() && userDoc.data().cartoesCredito) {
+          setCartoes(userDoc.data().cartoesCredito);
+          if (userDoc.data().cartoesCredito.length > 0) setCartaoSelecionado(0);
+        } else {
+          setCartoes([]);
+        }
+      } catch (err) {
+        setCartoes([]);
+      }
+    }
+    fetchCartoesFirestore();
   }, [router]);
 
   // Função responsável por processar o pagamento e salvar o pedido no Firestore
@@ -50,6 +91,15 @@ export default function Pagamento() {
       if (idx !== -1) {
         usuarios[idx].cartoesCredito = cartoesAtualizados;
         localStorage.setItem('usuarios', JSON.stringify(usuarios));
+      }
+      // Salva cartões também no Firestore
+      try {
+        await setDoc(doc(db, 'usuarios', usuario.email), {
+          cartoesCredito: cartoesAtualizados
+        }, { merge: true });
+      } catch (err) {
+        // Se der erro, apenas loga, mas não impede pagamento
+        console.error('Erro ao salvar cartão no Firestore:', err);
       }
     }
     // Busca o carrinho do localStorage
@@ -118,15 +168,35 @@ export default function Pagamento() {
             </form>
           ) : (
             // Se não houver cartões, mostra formulário de cadastro
-            <form onSubmit={handlePagamento} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-              <input type="text" placeholder="Nome no Cartão" value={novoCartao.nome} onChange={e => setNovoCartao({ ...novoCartao, nome: e.target.value })} style={{ padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} />
-              <input type="text" placeholder="Número do Cartão" value={novoCartao.numero} onChange={e => setNovoCartao({ ...novoCartao, numero: e.target.value })} style={{ padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} maxLength={19} />
-              <div style={{ display: 'flex', gap: 10 }}>
-                <input type="text" placeholder="Validade (MM/AA)" value={novoCartao.validade} onChange={e => setNovoCartao({ ...novoCartao, validade: e.target.value })} style={{ flex: 1, padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} maxLength={5} />
-                <input type="text" placeholder="CVV" value={novoCartao.cvv} onChange={e => setNovoCartao({ ...novoCartao, cvv: e.target.value })} style={{ flex: 1, padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} maxLength={4} />
-              </div>
-              <button type="submit" style={{ marginTop: 8, background: '#bfa46b', color: '#fff', border: 'none', borderRadius: 6, padding: '12px 0', fontSize: 17, cursor: 'pointer' }}>Cadastrar e Pagar</button>
-            </form>
+            <>
+              <form onSubmit={handleCadastrarCartao} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+                <input type="text" placeholder="Nome no Cartão" value={novoCartao.nome} onChange={e => setNovoCartao({ ...novoCartao, nome: e.target.value })} style={{ padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} />
+                <input type="text" placeholder="Número do Cartão" value={novoCartao.numero} onChange={e => setNovoCartao({ ...novoCartao, numero: e.target.value })} style={{ padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} maxLength={19} />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <input type="text" placeholder="Validade (MM/AA)" value={novoCartao.validade} onChange={e => setNovoCartao({ ...novoCartao, validade: e.target.value })} style={{ flex: 1, padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} maxLength={5} />
+                  <input type="text" placeholder="CVV" value={novoCartao.cvv} onChange={e => setNovoCartao({ ...novoCartao, cvv: e.target.value })} style={{ flex: 1, padding: 10, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }} maxLength={4} />
+                </div>
+                <button type="submit" disabled={cadastrando} style={{ marginTop: 8, background: '#bfa46b', color: '#fff', border: 'none', borderRadius: 6, padding: '12px 0', fontSize: 17, cursor: 'pointer' }}>{cadastrando ? 'Salvando...' : 'Cadastrar Cartão'}</button>
+                <div style={{ fontSize: 14, color: '#888', marginTop: 10 }}>Após cadastrar, selecione o cartão para finalizar o pagamento.</div>
+              </form>
+              {/* Após cadastrar, exibe cartões para seleção e pagamento */}
+              {cartoes.length > 0 && (
+                <form onSubmit={handlePagamento} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+                  <div style={{ marginBottom: 10, fontWeight: 500 }}>Selecione um cartão para pagar:</div>
+                  {cartoes.map((c, idx) => (
+                    <div key={idx} style={{ border: cartaoSelecionado === idx ? '2px solid #bfa46b' : '1px solid #ccc', borderRadius: 6, padding: 10, marginBottom: 8, background: cartaoSelecionado === idx ? '#f7f3ec' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setCartaoSelecionado(idx)}>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{c.nome}</div>
+                        <div style={{ fontSize: 15, color: '#666' }}>•••• {c.numero.slice(-4)} | Validade: {c.validade}</div>
+                        {c.principal && <span style={{ fontSize: 12, color: '#bfa46b', fontWeight: 600 }}>Principal</span>}
+                      </div>
+                      {cartaoSelecionado === idx && <span style={{ color: '#bfa46b', fontWeight: 700, fontSize: 18 }}>✓</span>}
+                    </div>
+                  ))}
+                  <button type="submit" style={{ marginTop: 8, background: '#bfa46b', color: '#fff', border: 'none', borderRadius: 6, padding: '12px 0', fontSize: 17, cursor: 'pointer' }}>Finalizar Pagamento</button>
+                </form>
+              )}
+            </>
           )}
         </>
       )}
