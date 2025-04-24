@@ -38,13 +38,15 @@ export default function Produtos() {
   const [descricao, setDescricao] = useState('');
   const [preco, setPreco] = useState('');
   const [categoria, setCategoria] = useState('Colares');
-  const [foto, setFoto] = useState(null);
+  const [imagem, setImagem] = useState(null);
   const [tamanho, setTamanho] = useState('');
   const [material, setMaterial] = useState('');
   const [destaque, setDestaque] = useState(false);
   const [editando, setEditando] = useState(null); // índice do produto sendo editado
   const [busca, setBusca] = useState('');
+  const [buscaInput, setBuscaInput] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
+  const [filtroDestaque, setFiltroDestaque] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -60,15 +62,15 @@ export default function Produtos() {
       if (!window.confirm('Salvar alterações deste produto?')) return;
       const produtoEdit = produtos[editando];
       await updateDoc(doc(db, 'produtos', produtoEdit.id), {
-        nome,
-        quantidade: Number(quantidade),
-        descricao,
-        preco,
-        categoria,
-        foto,
-        tamanho,
-        material,
-        destaque,
+        nome: nome || '',
+        quantidade: Number(quantidade) || 0,
+        descricao: descricao || '',
+        preco: preco || '',
+        categoria: categoria || 'Colares',
+        imagem: imagem || '',
+        tamanho: tamanho || '',
+        material: material || '',
+        destaque: destaque || false,
       });
       // Atualiza lista
       const snap = await getDocs(collection(db, 'produtos'));
@@ -95,7 +97,7 @@ export default function Produtos() {
           descricao,
           preco,
           categoria,
-          foto,
+          imagem,
           tamanho,
           material,
           destaque,
@@ -110,7 +112,7 @@ export default function Produtos() {
     setDescricao('');
     setPreco('');
     setCategoria('Colares');
-    setFoto(null);
+    setImagem(null);
     setTamanho('');
     setMaterial('');
     setDestaque(false);
@@ -124,11 +126,12 @@ export default function Produtos() {
     setDescricao(p.descricao);
     setPreco(p.preco);
     setCategoria(p.categoria);
-    setFoto(p.foto);
+    setImagem(p.imagem);
     setTamanho(p.tamanho);
     setMaterial(p.material);
     setDestaque(p.destaque);
-    setDestaque(!!produto.destaque);
+    // Corrigido: usar 'p' ao invés de 'produto'
+setDestaque(!!p.destaque);
     setEditando(idx);
   };
 
@@ -180,10 +183,17 @@ export default function Produtos() {
         <input
           type="text"
           placeholder="Buscar produto por nome ou descrição..."
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
+          value={buscaInput}
+          onChange={e => setBuscaInput(e.target.value)}
           style={{ flex: 2, padding: 8, borderRadius: 6, border: '1px solid #ccc', fontSize: 16 }}
         />
+        <button
+          type="button"
+          onClick={() => setBusca(buscaInput)}
+          style={{ padding: 8, borderRadius: 6, border: '1px solid #bfa46b', background: '#bfa46b', color: '#fff', fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}
+        >
+          Aplicar busca
+        </button>
         <select
           value={filtroCategoria}
           onChange={e => setFiltroCategoria(e.target.value)}
@@ -256,9 +266,9 @@ export default function Produtos() {
           style={{ marginRight: 10, marginBottom: 10, width: 110 }}
         />
         <div style={{ marginBottom: 10 }}>
-          {foto && (
+          {imagem && (
             <div style={{ marginBottom: 8 }}>
-              <img src={foto} alt="Imagem do produto" style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid #ccc', background: '#faf9f6' }} />
+              <img src={imagem} alt="Imagem do produto" style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid #ccc', background: '#faf9f6' }} />
             </div>
           )}
           <input
@@ -269,10 +279,10 @@ export default function Produtos() {
               const file = e.target.files[0];
               if (file) {
                 const reader = new FileReader();
-                reader.onloadend = () => setFoto(reader.result);
+                reader.onloadend = () => setImagem(reader.result);
                 reader.readAsDataURL(file);
               } else {
-                setFoto(null);
+                setImagem(null);
               }
             }}
             style={{ display: 'none' }}
@@ -284,7 +294,7 @@ export default function Produtos() {
           >
             Adicionar Imagem
           </button>
-          {foto && (
+          {imagem && (
             <span style={{ marginLeft: 10, color: '#555', fontSize: 15 }}>Imagem selecionada</span>
           )}
         </div>
@@ -303,7 +313,7 @@ export default function Produtos() {
             type="button"
             style={{ marginLeft: 8, background: '#888', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
             onClick={() => {
-              setNome(''); setQuantidade(1); setDescricao(''); setPreco(''); setCategoria('Colares'); setFoto(null); setEditando(null);
+              setNome(''); setQuantidade(1); setDescricao(''); setPreco(''); setCategoria('Colares'); setImagem(null); setEditando(null);
             }}
           >
             Cancelar
@@ -311,7 +321,20 @@ export default function Produtos() {
         )}
       </form>
 
-      {isClient && (
+    {/* Filtro de destaque e lista de produtos */}
+    {isClient && (
+      <>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 15 }}>
+            <input
+              type="checkbox"
+              checked={filtroDestaque}
+              onChange={e => setFiltroDestaque(e.target.checked)}
+              style={{ marginRight: 8 }}
+            />
+            Mostrar apenas produtos em destaque
+          </label>
+        </div>
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {(() => {
             const filtrados = produtos.filter(produto => {
@@ -320,15 +343,16 @@ export default function Produtos() {
                 busca === '' ||
                 (produto.nome && produto.nome.toLowerCase().includes(busca.toLowerCase())) ||
                 (produto.descricao && produto.descricao.toLowerCase().includes(busca.toLowerCase()));
-              return matchCategoria && matchBusca;
+              const matchDestaque = !filtroDestaque || produto.destaque === true;
+              return matchCategoria && matchBusca && matchDestaque;
             });
             if (filtrados.length === 0) {
               return <li>Nenhum produto encontrado.</li>;
             }
             return filtrados.map((produto, idx) => (
               <li key={produto.nome} style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
-                {produto.foto && (
-                  <img src={produto.foto} alt={produto.nome} style={{ width: 60, height: 60, objectFit: 'cover', marginRight: 12, borderRadius: 8 }} />
+                {produto.imagem && (
+                  <img src={produto.imagem} alt={produto.nome} style={{ width: 60, height: 60, objectFit: 'cover', marginRight: 12, borderRadius: 8 }} />
                 )}
                 <div style={{ flex: 1 }}>
                   <strong>{produto.nome}</strong> {produto.destaque && <span style={{ color: '#bfa46b', fontWeight: 700, fontSize: 15, marginLeft: 6 }}>[DESTAQUE]</span>} (Qtd: {produto.quantidade})<br />
@@ -348,7 +372,8 @@ export default function Produtos() {
             ));
           })()}
         </ul>
-      )}
-    </div>
+      </>
+    )}
+  </div>
   );
 }
